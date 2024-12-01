@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 
@@ -31,12 +33,35 @@ fn solver_part1(input: &Input) -> i64 {
         .sum()
 }
 
-#[aoc(day1, part2)]
-fn solver_part2(input: &Input) -> usize {
+#[aoc(day1, part2, FILTER)]
+fn solver_part2_filter(input: &Input) -> usize {
     input
         .0
         .iter()
         .map(|a| input.1.iter().filter(|b| *b == a).count() * *a as usize)
+        .sum()
+}
+
+#[aoc(day1, part2, HASH)]
+fn solver_part2_hash(input: &Input) -> i64 {
+    let mut hash = HashMap::new();
+    for v in &input.1 {
+        match hash.get(v) {
+            Some(x) => hash.insert(*v, x + 1),
+            None => hash.insert(*v, 1),
+        };
+    }
+
+    input
+        .0
+        .iter()
+        .map(|a| {
+            //
+            match hash.get(a) {
+                Some(x) => a * x,
+                None => 0,
+            }
+        })
         .sum()
 }
 

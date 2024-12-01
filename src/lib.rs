@@ -30,4 +30,4 @@ pub mod day1;
 //pub mod day25;
 
 
-aoc_lib! { year = 2022 }
+aoc_lib! { year = 2024 }

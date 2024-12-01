@@ -72,6 +72,16 @@ mod tests {
 
     #[test]
     fn sample1() {
-        assert_eq!(solver_part1(&input_generator("input")), 0)
+        assert_eq!(
+            solver_part1(&input_generator(
+                "3   4
+4   3
+2   5
+1   3
+3   9
+3   3"
+            )),
+            11
+        )
     }
 }

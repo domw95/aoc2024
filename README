@@ -1,0 +1,5 @@
+# Instructions
+- Clone this repo
+- remove git folder
+- git init
+- Run "setup.py XXXX" with year to configure crate and download available inputs

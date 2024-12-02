@@ -1,22 +1,54 @@
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
+use itertools::Itertools;
 
-type Input = String;
+type Input = Vec<Vec<i32>>;
 
 #[aoc_generator(day2)]
 fn input_generator(input: &str) -> Input {
-    input.to_string()
+    input
+        .lines()
+        .map(|l| {
+            l.split_ascii_whitespace()
+                .map(|v| v.parse::<i32>().unwrap())
+                .collect_vec()
+        })
+        .collect_vec()
 }
 
 #[aoc(day2, part1)]
-fn solver_part1(input: &Input) -> u32 {
-    dbg!(input);
-    0
+fn solver_part1(input: &Input) -> usize {
+    input
+        .iter()
+        .filter(|vec| {
+            //
+            let diff = vec.iter().tuple_windows().map(|(a, b)| b - a).collect_vec();
+            let sign = diff.iter().map(|v| v.signum()).collect_vec();
+            let mag = diff.iter().map(|v| v.abs()).collect_vec();
+            mag.iter().all(|v| *v <= 3 && *v >= 1) && sign.iter().all_equal()
+        })
+        .count()
 }
 
 #[aoc(day2, part2)]
-fn solver_part2(input: &Input) -> u32 {
-    0
+fn solver_part2(input: &Input) -> usize {
+    input
+        .iter()
+        .filter(|vec| {
+            //
+
+            vec.iter().combinations(vec.len() - 1).any(|vec| {
+                let diff = vec
+                    .iter()
+                    .tuple_windows()
+                    .map(|(a, b)| **b - **a)
+                    .collect_vec();
+                let sign = diff.iter().map(|v| v.signum()).collect_vec();
+                let mag = diff.iter().map(|v| v.abs()).collect_vec();
+                mag.iter().all(|v| *v <= 3 && *v >= 1) && sign.iter().all_equal()
+            })
+        })
+        .count()
 }
 
 #[cfg(test)]

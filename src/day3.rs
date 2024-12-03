@@ -21,20 +21,35 @@ fn solver_part1(input: &Input) -> u32 {
 
 #[aoc(day3, part2)]
 fn solver_part2(input: &Input) -> u32 {
-    let re = regex::Regex::new(r"(mul\(\d\d?\d?,\d\d?\d?\)|do\(\)|don't\(\))").unwrap();
+    let re = regex::Regex::new(r"mul\(\d\d?\d?,\d\d?\d?\)|do\(\)|don't\(\)").unwrap();
     let re_mul = regex::Regex::new(r"mul\((\d\d?\d?),(\d\d?\d?)\)").unwrap();
-    let re_do = regex::Regex::new(r"do\(\)").unwrap();
-    let re_dont = regex::Regex::new(r"don't\(\)").unwrap();
     let mut enable = true;
     let mut sum = 0;
     for m in re.find_iter(input) {
-        if re_do.is_match(m.as_str()) {
+        if m.as_str() == "do()" {
             enable = true
-        } else if re_dont.is_match(m.as_str()) {
+        } else if m.as_str() == "don't()" {
             enable = false
         } else if enable {
             let cap = re_mul.captures(m.as_str()).unwrap();
             sum += cap[1].parse::<u32>().unwrap() * cap[2].parse::<u32>().unwrap();
+        }
+    }
+    sum
+}
+
+#[aoc(day3, part2, SINGLE)]
+fn solver_part2_single(input: &Input) -> u32 {
+    let re = regex::Regex::new(r"mul\((\d\d?\d?),(\d\d?\d?)\)|do\(\)|don't\(\)").unwrap();
+    let mut enable = true;
+    let mut sum = 0;
+    for c in re.captures_iter(input) {
+        if &c[0] == "do()" {
+            enable = true
+        } else if &c[0] == "don't()" {
+            enable = false
+        } else if enable {
+            sum += c[1].parse::<u32>().unwrap() * c[2].parse::<u32>().unwrap();
         }
     }
     sum

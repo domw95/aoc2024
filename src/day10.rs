@@ -23,9 +23,17 @@ fn solver_part2(input: &Input) -> u32 {
 mod tests {
     use super::input_generator;
     use super::solver_part1;
+    use super::solver_part2;
+
+    static INPUT: &str = "";
 
     #[test]
-    fn sample1() {
-        assert_eq!(solver_part1(&input_generator("input")), 0)
+    fn part1() {
+        assert_eq!(solver_part1(&input_generator(INPUT)), 0)
+    }
+
+    #[test]
+    fn part2() {
+        assert_eq!(solver_part2(&input_generator(INPUT)), 0)
     }
 }

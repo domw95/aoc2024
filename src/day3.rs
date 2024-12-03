@@ -10,22 +10,54 @@ fn input_generator(input: &str) -> Input {
 
 #[aoc(day3, part1)]
 fn solver_part1(input: &Input) -> u32 {
-    dbg!(input);
-    0
+    let re = regex::Regex::new(r"mul\((\d\d?\d?),(\d\d?\d?)\)").unwrap();
+    re.captures_iter(input)
+        .map(|c| {
+            let (_, [a, b]) = c.extract();
+            a.parse::<u32>().unwrap() * b.parse::<u32>().unwrap()
+        })
+        .sum()
 }
 
 #[aoc(day3, part2)]
 fn solver_part2(input: &Input) -> u32 {
-    0
+    let re = regex::Regex::new(r"(mul\(\d\d?\d?,\d\d?\d?\)|do\(\)|don't\(\))").unwrap();
+    let re_mul = regex::Regex::new(r"mul\((\d\d?\d?),(\d\d?\d?)\)").unwrap();
+    let re_do = regex::Regex::new(r"do\(\)").unwrap();
+    let re_dont = regex::Regex::new(r"don't\(\)").unwrap();
+    let mut enable = true;
+    let mut sum = 0;
+    for m in re.find_iter(input) {
+        if re_do.is_match(m.as_str()) {
+            enable = true
+        } else if re_dont.is_match(m.as_str()) {
+            enable = false
+        } else if enable {
+            let cap = re_mul.captures(m.as_str()).unwrap();
+            sum += cap[1].parse::<u32>().unwrap() * cap[2].parse::<u32>().unwrap();
+        }
+    }
+    sum
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::day3::solver_part2;
+
     use super::input_generator;
     use super::solver_part1;
 
+    static INPUT: &str = "xmul(2,4)%&mul[3,7]!@^do_not_mul(5,5)+mul(32,64]then(mul(11,8)mul(8,5))";
+    static INPUT2: &str =
+        "xmul(2,4)&mul[3,7]!^don't()_mul(5,5)+mul(32,64](mul(11,8)undo()?mul(8,5))";
+
     #[test]
     fn sample1() {
-        assert_eq!(solver_part1(&input_generator("input")), 0)
+        assert_eq!(solver_part1(&input_generator(INPUT)), 161)
+    }
+
+    #[test]
+    fn sample2() {
+        assert_eq!(solver_part2(&input_generator(INPUT2)), 48)
     }
 }

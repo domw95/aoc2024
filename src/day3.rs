@@ -12,10 +12,7 @@ fn input_generator(input: &str) -> Input {
 fn solver_part1(input: &Input) -> u32 {
     let re = regex::Regex::new(r"mul\((\d\d?\d?),(\d\d?\d?)\)").unwrap();
     re.captures_iter(input)
-        .map(|c| {
-            let (_, [a, b]) = c.extract();
-            a.parse::<u32>().unwrap() * b.parse::<u32>().unwrap()
-        })
+        .map(|c| c[1].parse::<u32>().unwrap() * c[2].parse::<u32>().unwrap())
         .sum()
 }
 
@@ -44,9 +41,9 @@ fn solver_part2_single(input: &Input) -> u32 {
     let mut enable = true;
     let mut sum = 0;
     for c in re.captures_iter(input) {
-        if &c[0] == "do()" {
+        if c[0].len() == 4 {
             enable = true
-        } else if &c[0] == "don't()" {
+        } else if c[0].len() == 7 {
             enable = false
         } else if enable {
             sum += c[1].parse::<u32>().unwrap() * c[2].parse::<u32>().unwrap();

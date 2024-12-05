@@ -1,7 +1,6 @@
 use std::ops::Add;
 use std::ops::AddAssign;
 use std::ops::Index;
-use std::path::Iter;
 
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use itertools::Itertools;
@@ -14,6 +16,32 @@ impl Rule {
     }
 }
 
+struct Rules(HashMap<u32, Vec<u32>>);
+
+impl Rules {
+    // Returns true if a rule matches the args
+    fn matches(&self, before: &u32, after: &u32) -> bool {
+        match self.0.get(before) {
+            Some(vec) => vec.contains(after),
+            None => false,
+        }
+    }
+}
+
+impl From<&[Rule]> for Rules {
+    fn from(rules: &[Rule]) -> Self {
+        let mut map: HashMap<u32, Vec<u32>> = HashMap::new();
+        for rule in rules {
+            match map.get_mut(&rule.0 .0) {
+                Some(vec) => vec.push(rule.0 .1),
+                None => {
+                    map.insert(rule.0 .0, vec![rule.0 .1]);
+                }
+            }
+        }
+        Rules(map)
+    }
+}
 #[derive(Debug, Clone)]
 struct Pages(Vec<u32>);
 
@@ -30,6 +58,18 @@ impl Pages {
                         || !self.0[0..ind].contains(&rule.0 .1))
             })
         })
+    }
+
+    fn is_valid_hash(&self, rules: &Rules) -> bool {
+        self.0
+            .iter()
+            .enumerate()
+            .all(|(ind, page)| match rules.0.get(page) {
+                Some(after) => after.iter().all(|after| {
+                    (self.0[(ind + 1)..].contains(after) || !self.0[0..ind].contains(after))
+                }),
+                None => true,
+            })
     }
 }
 
@@ -58,6 +98,20 @@ fn solver_part1((rules, pages): &Input) -> u32 {
         .sum()
 }
 
+#[aoc(day5, part1, HASH)]
+fn solver_part1_hash((rules, pages): &Input) -> u32 {
+    let rules = Rules::from(rules.as_slice());
+    pages
+        .iter()
+        .filter_map(|pages| {
+            if pages.is_valid_hash(&rules) {
+                Some(pages.0[pages.0.len() / 2])
+            } else {
+                None
+            }
+        })
+        .sum()
+}
 #[aoc(day5, part2)]
 fn solver_part2((rules, pages): &Input) -> u32 {
     pages
@@ -77,6 +131,29 @@ fn solver_part2((rules, pages): &Input) -> u32 {
                     }
                 }
                 sorted.push(*page);
+            }
+            sorted[sorted.len() / 2]
+        })
+        .sum()
+}
+
+#[aoc(day5, part2, HASH)]
+fn solver_part2_hash((rules, pages): &Input) -> u32 {
+    let rules = Rules::from(rules.as_slice());
+    pages
+        .iter()
+        .filter(|pages| !pages.is_valid_hash(&rules))
+        .map(|pages| {
+            //
+            let mut sorted = Vec::new();
+            'page: for page in &pages.0 {
+                for i in 0..sorted.len() {
+                    if rules.matches(page, sorted[i]) {
+                        sorted.insert(i, page);
+                        continue 'page;
+                    }
+                }
+                sorted.push(page);
             }
             sorted[sorted.len() / 2]
         })

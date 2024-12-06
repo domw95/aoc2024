@@ -17,7 +17,7 @@ fn solver_part1(grid: &Input) -> usize {
         .flat_map(|coord| {
             grid.all_direction_iterators(coord)
                 .into_iter()
-                .map(|iter| iter.take(4).collect::<String>() == "XMAS")
+                .map(|iter| iter.take(4).map(|(c, _)| *c).collect::<String>() == "XMAS")
                 .filter(|v| *v)
                 .collect::<Vec<bool>>()
         })
@@ -31,10 +31,10 @@ fn solver_part1_fast(grid: &Input) -> usize {
             grid.all_direction_iterators(coord)
                 .into_iter()
                 .map(|mut iter| {
-                    matches!(iter.next(), Some('X'))
-                        && matches!(iter.next(), Some('M'))
-                        && matches!(iter.next(), Some('A'))
-                        && matches!(iter.next(), Some('S'))
+                    matches!(iter.next(), Some(('X', _)))
+                        && matches!(iter.next(), Some(('M', _)))
+                        && matches!(iter.next(), Some(('A', _)))
+                        && matches!(iter.next(), Some(('S', _)))
                 })
                 .filter(|v| *v)
                 .collect::<Vec<bool>>()

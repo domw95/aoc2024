@@ -257,3 +257,20 @@ mod tests {
         assert_eq!(solver_part2(&input_generator(INPUT)), 6)
     }
 }
+
+// AOC 2024
+// Day 6 - Part 1 : 4977
+//         generator: 113.284µs,
+//         runner: 59.554µs
+
+// Day 6 - Part 2 : 1729
+//         generator: 95.242µs,
+//         runner: 361.642311ms
+
+// Day 6 - Part 2 - VISITED : 1729
+//         generator: 82.088µs,
+//         runner: 76.265947ms
+
+// Day 6 - Part 2 - VISITED_PARALELL : 1729
+//         generator: 83.349µs,
+//         runner: 18.59988ms

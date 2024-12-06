@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use aoc_runner_derive::aoc;
@@ -69,6 +70,50 @@ fn run_grid(grid: &mut Grid<Square>, mut current: Coord, mut direction: Directio
             || current.y == (grid.height - 1) as i32
         {
             break;
+        } else {
+            direction = next;
+        }
+    }
+}
+
+fn run_grid_tracked(
+    grid: &mut Grid<Square>,
+    mut current: Coord,
+    mut direction: Direction,
+) -> HashMap<Coord, Direction> {
+    let mut map = HashMap::new();
+    loop {
+        let (iter, next) = match direction {
+            Direction::Up => (grid.north_iter_mut(current), Direction::Right),
+            Direction::Right => (grid.east_iter_mut(current), Direction::Down),
+            Direction::Down => (grid.south_iter_mut(current), Direction::Left),
+            Direction::Left => (grid.west_iter_mut(current), Direction::Up),
+        };
+        current = iter
+            .take_while(|(sq, _)| match **sq {
+                Square::Empty => true,
+                Square::Visited => true,
+                Square::Obstruction => false,
+                Square::Guard(_) => panic!(),
+            })
+            .map(|(sq, pos)| {
+                *sq = Square::Visited;
+                match map.get(&pos) {
+                    Some(_) => (),
+                    None => {
+                        let _ = map.insert(pos, direction);
+                    }
+                }
+                pos
+            })
+            .last()
+            .unwrap();
+        if current.x == 0
+            || current.y == 0
+            || current.x == (grid.width - 1) as i32
+            || current.y == (grid.height - 1) as i32
+        {
+            return map;
         } else {
             direction = next;
         }
@@ -198,8 +243,8 @@ fn solver_part2_visited(input: &Input) -> usize {
         .count()
 }
 
-#[aoc(day6, part2, VISITED_PARALELL)]
-fn solver_part2_paralell(input: &Input) -> usize {
+#[aoc(day6, part2, VISITED_PARALLEL)]
+fn solver_part2_parallel(input: &Input) -> usize {
     let mut grid = input.clone();
     let mut start = Coord::new(0, 0);
     let mut start_direction = Direction::Up;
@@ -227,6 +272,48 @@ fn solver_part2_paralell(input: &Input) -> usize {
             let mut grid = grid.clone();
             grid[*coord] = Square::Obstruction;
             is_loop(&mut grid, start, start_direction)
+        })
+        .count()
+}
+
+fn previous_coord(coord: &Coord, direction: &Direction) -> Coord {
+    match direction {
+        Direction::Up => Coord::new(coord.x, coord.y + 1),
+        Direction::Down => Coord::new(coord.x, coord.y - 1),
+        Direction::Left => Coord::new(coord.x + 1, coord.y),
+        Direction::Right => Coord::new(coord.x - 1, coord.y),
+    }
+}
+#[aoc(day6, part2, VISITED_PARALLEl_SHORT)]
+fn solver_part2_short(input: &Input) -> usize {
+    let mut grid = input.clone();
+    let mut start = Coord::new(0, 0);
+    let mut start_direction = Direction::Up;
+    for coord in grid.coord_iter() {
+        match grid[coord] {
+            Square::Guard(d) => {
+                start_direction = d;
+                start = coord;
+                grid[coord] = Square::Visited;
+                break;
+            }
+            _ => continue,
+        }
+    }
+    // Run grid to find visited only
+    let visited = run_grid_tracked(&mut grid, start, start_direction);
+    // Set starting pos to empty
+    grid[start] = Square::Empty;
+
+    grid.coord_iter()
+        .filter(|coord| matches!(grid[*coord], Square::Visited))
+        .par_bridge()
+        .filter(|coord| {
+            // try put an obstacle in
+            let mut grid = grid.clone();
+            grid[*coord] = Square::Obstruction;
+            let dir = visited.get(coord).unwrap();
+            is_loop(&mut grid, previous_coord(coord, dir), *dir)
         })
         .count()
 }

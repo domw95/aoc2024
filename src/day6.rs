@@ -361,3 +361,24 @@ mod tests {
 // Day 6 - Part 2 - VISITED_PARALELL : 1729
 //         generator: 83.349µs,
 //         runner: 18.59988ms
+
+// AOC 2024
+// Day 6 - Part 1 : 4977
+//         generator: 83.216µs,
+//         runner: 47.623µs
+
+// Day 6 - Part 2 : 1729
+//         generator: 70.72µs,
+//         runner: 300.937837ms
+
+// Day 6 - Part 2 - VISITED : 1729
+//         generator: 67.726µs,
+//         runner: 63.29636ms
+
+// Day 6 - Part 2 - VISITED_PARALLEL : 1729
+//         generator: 67.117µs,
+//         runner: 11.846261ms
+
+// Day 6 - Part 2 - VISITED_PARALLEl_SHORT : 1729
+//         generator: 69.278µs,
+//         runner: 4.271893ms

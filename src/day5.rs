@@ -145,7 +145,7 @@ fn solver_part2_hash((rules, pages): &Input) -> u32 {
         .filter(|pages| !pages.is_valid_hash(&rules))
         .map(|pages| {
             //
-            let mut sorted = Vec::new();
+            let mut sorted = Vec::with_capacity(pages.0.len());
             'page: for page in &pages.0 {
                 for i in 0..sorted.len() {
                     if rules.matches(page, sorted[i]) {

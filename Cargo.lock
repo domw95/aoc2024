@@ -41,11 +41,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aoc-tools"
+version = "0.1.0"
+source = "git+https://github.com/domw95/aoc-tools#4d449164adc537204522279fd82b0973c048f71f"
+
+[[package]]
 name = "aoc2024"
 version = "0.1.0"
 dependencies = [
  "aoc-runner",
  "aoc-runner-derive",
+ "aoc-tools",
  "itertools",
  "rayon",
  "regex",

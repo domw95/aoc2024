@@ -66,7 +66,7 @@ impl Pages {
             .enumerate()
             .all(|(ind, page)| match rules.0.get(page) {
                 Some(after) => after.iter().all(|after| {
-                    (self.0[(ind + 1)..].contains(after) || !self.0[0..ind].contains(after))
+                    self.0[(ind + 1)..].contains(after) || !self.0[0..ind].contains(after)
                 }),
                 None => true,
             })

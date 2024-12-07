@@ -1,5 +1,6 @@
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
+use itertools::FoldWhile::{Continue, Done};
 use itertools::Itertools;
 use rayon::prelude::*;
 
@@ -51,6 +52,40 @@ fn solver_part1(input: &Input) -> u64 {
                         Op::Add => total + v,
                         Op::Mult => total * v,
                     })
+                    == sum
+            }) {
+                Some(sum)
+            } else {
+                None
+            }
+        })
+        .sum()
+}
+
+#[aoc(day7, part1, EARLY_EXIT)]
+fn solver_part1_early_exit(input: &Input) -> u64 {
+    input
+        .lines()
+        .filter_map(|l| {
+            let s = l.split_once(": ").unwrap();
+            let sum: u64 = s.0.parse().unwrap();
+            let values: Vec<u64> = s.1.split(' ').map(|s| s.parse::<u64>().unwrap()).collect();
+            if op_iter(values.len() - 1).any(|ops| {
+                values[1..]
+                    .iter()
+                    .zip(ops.into_iter())
+                    .fold_while(values[0], |total, (v, op)| {
+                        let res = match op {
+                            Op::Add => total + v,
+                            Op::Mult => total * v,
+                        };
+                        if res > sum {
+                            Done(res)
+                        } else {
+                            Continue(res)
+                        }
+                    })
+                    .into_inner()
                     == sum
             }) {
                 Some(sum)
@@ -255,6 +290,52 @@ fn solver_part2_faster_concat(input: &Input) -> u64 {
                         }
                     },
                 ) == sum
+            }) {
+                Some(sum)
+            } else {
+                None
+            }
+        })
+        .sum()
+}
+
+#[aoc(day7, part2, FASTER_CONCAT_EARLY_EXIT)]
+fn solver_part2_faster_concat_early_exit(input: &Input) -> u64 {
+    input
+        .lines()
+        .filter_map(|l| {
+            let s = l.split_once(": ").unwrap();
+            let sum: u64 = s.0.parse().unwrap();
+            let values: Vec<u64> = s.1.split(' ').map(|s| s.parse::<u64>().unwrap()).collect();
+            if op2_iter(values.len() - 1).any(|ops| {
+                values[1..]
+                    .iter()
+                    .zip(ops.into_iter())
+                    .fold_while(values[0], |total, (&v, op)| {
+                        let res = match op {
+                            Op2::Add => total + v,
+                            Op2::Mult => total * v,
+                            Op2::Concat => {
+                                let pow = if v < 10 {
+                                    1
+                                } else if v < 100 {
+                                    2
+                                } else if v < 1000 {
+                                    3
+                                } else {
+                                    4
+                                };
+                                total * 10u64.pow(pow) + v
+                            }
+                        };
+                        if res > sum {
+                            Done(res)
+                        } else {
+                            Continue(res)
+                        }
+                    })
+                    .into_inner()
+                    == sum
             }) {
                 Some(sum)
             } else {

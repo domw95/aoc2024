@@ -20,3 +20,5 @@ itertools = "0.13.0"
 rayon = "1.10.0"
 regex = "1.11.1"
 aoc-tools = { git = "https://github.com/domw95/aoc-tools", version = "*" }
+gcd = "2.3.0"
+num = "0.4.3"

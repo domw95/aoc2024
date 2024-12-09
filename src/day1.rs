@@ -1,3 +1,4 @@
+use std::collections::BinaryHeap;
 use std::collections::HashMap;
 use std::thread;
 
@@ -95,6 +96,21 @@ fn custom_parse_2(input: &str) -> (Vec<i32>, Vec<i32>) {
     vecs
 }
 
+fn parse_heap(input: &str) -> (BinaryHeap<i32>, BinaryHeap<i32>) {
+    let length = input.len() / 14;
+    let mut heap = (
+        BinaryHeap::with_capacity(length),
+        BinaryHeap::with_capacity(length),
+    );
+    for line in input.lines() {
+        let (a, b) = line.split_once("   ").unwrap();
+        let (a, b) = (a.parse::<i32>().unwrap_or(0), b.parse::<i32>().unwrap_or(0));
+        heap.0.push(a);
+        heap.1.push(b);
+    }
+    heap
+}
+
 #[aoc(day1, part1)]
 fn solver_part1(input: &Input) -> i64 {
     let mut input = parse(input);
@@ -124,6 +140,17 @@ fn solver_part1_unstable(input: &Input) -> i64 {
             //
             (a - b).abs()
         })
+        .sum()
+}
+
+#[aoc(day1, part1, BHEAP)]
+fn solver_part1_bheap(input: &Input) -> i32 {
+    let heap = parse_heap(input);
+    heap.0
+        .into_sorted_vec()
+        .into_iter()
+        .zip(heap.1.into_sorted_vec())
+        .map(|(a, b)| (a - b).abs())
         .sum()
 }
 

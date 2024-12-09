@@ -3,6 +3,7 @@ use std::thread;
 
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
+use itertools::Itertools;
 
 type Input = String;
 
@@ -44,6 +45,56 @@ fn fast_parse_i32(input: &str) -> (Vec<i32>, Vec<i32>) {
         .unzip()
 }
 
+fn custom_parse(input: &str) -> (Vec<i32>, Vec<i32>) {
+    let length = input.len() / 14;
+    let mut vecs = (Vec::with_capacity(length), Vec::with_capacity(length));
+    for mut c in input.bytes().chunks(14).into_iter() {
+        let mut number = 0;
+        for i in (0..5u32).rev() {
+            let b = c.next().unwrap();
+            number += ((b - 48) as i32) * 10i32.pow(i);
+        }
+        vecs.0.push(number);
+        c.next();
+        c.next();
+        c.next();
+        let mut number = 0;
+        for i in (0..5u32).rev() {
+            let b = c.next().unwrap();
+            number += ((b - 48) as i32) * 10i32.pow(i);
+        }
+        vecs.1.push(number);
+    }
+    vecs
+}
+
+fn custom_parse_2(input: &str) -> (Vec<i32>, Vec<i32>) {
+    let length = input.len() / 14;
+    let mut vecs = (Vec::with_capacity(length), Vec::with_capacity(length));
+    for mut c in input.bytes().chunks(14).into_iter() {
+        let mut number = 0;
+        number += ((c.next().unwrap() - 48) as i32) * 10000;
+        number += ((c.next().unwrap() - 48) as i32) * 1000;
+        number += ((c.next().unwrap() - 48) as i32) * 100;
+        number += ((c.next().unwrap() - 48) as i32) * 10;
+        number += (c.next().unwrap() - 48) as i32;
+        vecs.0.push(number);
+
+        c.next();
+        c.next();
+        c.next();
+
+        let mut number = 0;
+        number += ((c.next().unwrap() - 48) as i32) * 10000;
+        number += ((c.next().unwrap() - 48) as i32) * 1000;
+        number += ((c.next().unwrap() - 48) as i32) * 100;
+        number += ((c.next().unwrap() - 48) as i32) * 10;
+        number += (c.next().unwrap() - 48) as i32;
+        vecs.1.push(number);
+    }
+    vecs
+}
+
 #[aoc(day1, part1)]
 fn solver_part1(input: &Input) -> i64 {
     let mut input = parse(input);
@@ -79,6 +130,38 @@ fn solver_part1_unstable(input: &Input) -> i64 {
 #[aoc(day1, part1, UNSTABLE_I32)]
 fn solver_part1_unstable_i32(input: &Input) -> i32 {
     let mut input = parse_i32(input);
+    input.0.sort_unstable();
+    input.1.sort_unstable();
+    input
+        .0
+        .iter()
+        .zip(input.1)
+        .map(|(a, b)| {
+            //
+            (a - b).abs()
+        })
+        .sum()
+}
+
+#[aoc(day1, part1, UNSTABLE_I32_CUSTOM_PARSE)]
+fn solver_part1_unstable_i32_custom_parse(input: &Input) -> i32 {
+    let mut input = custom_parse(input);
+    input.0.sort_unstable();
+    input.1.sort_unstable();
+    input
+        .0
+        .iter()
+        .zip(input.1)
+        .map(|(a, b)| {
+            //
+            (a - b).abs()
+        })
+        .sum()
+}
+
+#[aoc(day1, part1, UNSTABLE_I32_CUSTOM_PARSE_2)]
+fn solver_part1_unstable_i32_custom_parse_2(input: &Input) -> i32 {
+    let mut input = custom_parse_2(input);
     input.0.sort_unstable();
     input.1.sort_unstable();
     input

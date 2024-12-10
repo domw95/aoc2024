@@ -22,3 +22,4 @@ regex = "1.11.1"
 aoc-tools = { git = "https://github.com/domw95/aoc-tools", version = "*" }
 gcd = "2.3.0"
 num = "0.4.3"
+fxhash = "0.2.1"

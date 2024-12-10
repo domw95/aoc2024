@@ -90,10 +90,6 @@ impl RuleMapSet {
     fn get(&self, key: &u8) -> &HashSet<u8> {
         &self.0[*key as usize]
     }
-
-    fn matches(&self, key: &u8, page: &u8) -> bool {
-        self.get(key).contains(page)
-    }
 }
 
 struct RuleMapArray([[bool; 100]; 100]);

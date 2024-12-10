@@ -42,8 +42,8 @@ dependencies = [
 
 [[package]]
 name = "aoc-tools"
-version = "0.1.7"
-source = "git+https://github.com/domw95/aoc-tools#792c1dbda93a79360488aac6a467c8e91e924fdd"
+version = "0.1.8"
+source = "git+https://github.com/domw95/aoc-tools#f1101d26faa56546c4fef864f5e07f7e5d8cca39"
 
 [[package]]
 name = "aoc2024"

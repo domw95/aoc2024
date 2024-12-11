@@ -1,5 +1,3 @@
-use std::usize;
-
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use itertools::Itertools;
@@ -13,7 +11,7 @@ enum Block {
 }
 
 impl Block {
-    fn value(&self) -> u32 {
+    fn _value(&self) -> u32 {
         match self {
             Block::Empty => 0,
             Block::Id(v) => *v,
@@ -88,7 +86,7 @@ fn solver_part1(input: &Input) -> usize {
     checksum_blocks(&fs)
 }
 
-fn next_tail(tail: &mut usize, fs: &[Block]) {
+fn _next_tail(tail: &mut usize, fs: &[Block]) {
     *tail -= 1;
     while matches!(fs[*tail], Block::Empty) {
         *tail -= 1;

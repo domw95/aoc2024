@@ -110,6 +110,44 @@ fn solver_part1_cache_fx(grid: &Input) -> usize {
         .sum()
 }
 
+fn find_path_fxcache_vec(
+    coord: &Coord,
+    next: u8,
+    grid: &Grid<u8>,
+    cache: &mut Grid<Option<Vec<Coord>>>,
+) -> Vec<Coord> {
+    if next == 10 {
+        vec![*coord]
+    } else if let Some(set) = &cache[*coord] {
+        set.clone()
+    } else {
+        let vec: Vec<Coord> = grid
+            .orthogs_coords(coord)
+            .iter()
+            .flatten()
+            .filter(|(_, &i)| i == next)
+            .flat_map(|(c, _)| find_path_fxcache_vec(c, next + 1, grid, cache))
+            .collect();
+        cache[*coord] = Some(vec.clone());
+        vec
+    }
+}
+
+#[aoc(day10, part1, CACHE_FX_VEC)]
+fn solver_part1_cache_fx_vec(grid: &Input) -> usize {
+    let mut cache: Grid<Option<Vec<Coord>>> =
+        Grid::from_iter(&mut grid.iter().map(|_| None), grid.width);
+    grid.iter()
+        .filter(|(_, &i)| i == 0)
+        .map(|(c, _)| {
+            find_path_fxcache_vec(&c, 1, grid, &mut cache)
+                .iter()
+                .collect::<FxHashSet<_>>()
+                .len()
+        })
+        .sum()
+}
+
 fn find_path_2(coord: &Coord, next: u8, grid: &Grid<u8>) -> usize {
     if next == 10 {
         1
@@ -168,6 +206,7 @@ fn solver_part2_cache(grid: &Input) -> usize {
 mod tests {
     use crate::day10::solver_part1_cache;
     use crate::day10::solver_part1_cache_fx;
+    use crate::day10::solver_part1_cache_fx_vec;
     use crate::day10::solver_part2_cache;
 
     use super::input_generator;
@@ -195,6 +234,11 @@ mod tests {
     #[test]
     fn part1_cache_fx() {
         assert_eq!(solver_part1_cache_fx(&input_generator(INPUT)), 36)
+    }
+
+    #[test]
+    fn part1_cache_fx_vec() {
+        assert_eq!(solver_part1_cache_fx_vec(&input_generator(INPUT)), 36)
     }
 
     #[test]

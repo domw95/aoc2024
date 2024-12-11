@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use fxhash::FxHashMap;
+use itertools::Itertools;
 use rayon::prelude::*;
 
 type Input = String;
@@ -19,7 +21,7 @@ fn recursive(v: u64, blinks: u32) -> usize {
         match v {
             0 => recursive(1, blinks - 1),
             v => {
-                let digits = (v as f64).log10().floor() as u32 + 1;
+                let digits = digits(v);
                 if digits % 2 == 0 {
                     recursive(v / 10u64.pow(digits / 2), blinks - 1)
                         + recursive(v % 10u64.pow(digits / 2), blinks - 1)
@@ -40,7 +42,7 @@ fn recursive_cache(v: u64, blinks: u32, cache: &mut HashMap<(u64, u32), usize>) 
         let count = match v {
             0 => recursive_cache(1, blinks - 1, cache),
             v => {
-                let digits = (v as f64).log10().floor() as u32 + 1;
+                let digits = digits(v);
                 if digits % 2 == 0 {
                     recursive_cache(v / 10u64.pow(digits / 2), blinks - 1, cache)
                         + recursive_cache(v % 10u64.pow(digits / 2), blinks - 1, cache)
@@ -63,7 +65,7 @@ fn recursive_cache_fx(v: u64, blinks: u32, cache: &mut FxHashMap<(u64, u32), usi
         let count = match v {
             0 => recursive_cache_fx(1, blinks - 1, cache),
             v => {
-                let digits = (v as f64).log10().floor() as u32 + 1;
+                let digits = digits(v);
                 if digits % 2 == 0 {
                     recursive_cache_fx(v / 10u64.pow(digits / 2), blinks - 1, cache)
                         + recursive_cache_fx(v % 10u64.pow(digits / 2), blinks - 1, cache)
@@ -86,7 +88,7 @@ fn recursive_cache_fx_custom(v: u64, blinks: u32, cache: &mut [FxHashMap<u64, us
         let count = match v {
             0 => recursive_cache_fx_custom(1, blinks - 1, cache),
             v => {
-                let digits = v.ilog10() + 1;
+                let digits = digits(v);
                 if digits % 2 == 0 {
                     recursive_cache_fx_custom(v / 10u64.pow(digits / 2), blinks - 1, cache)
                         + recursive_cache_fx_custom(v % 10u64.pow(digits / 2), blinks - 1, cache)
@@ -100,6 +102,49 @@ fn recursive_cache_fx_custom(v: u64, blinks: u32, cache: &mut [FxHashMap<u64, us
     }
 }
 
+fn digits(value: u64) -> u32 {
+    value.ilog10() + 1
+}
+
+fn bfs(blinks: u32, values: Vec<u64>) -> usize {
+    let mut map = FxHashMap::default();
+    for v in values {
+        map.insert(v, 1);
+    }
+    for _ in 0..blinks {
+        let mut new_map = FxHashMap::default();
+        for (v, count) in map {
+            if v == 0 {
+                new_map.entry(1);
+            } else {
+                let digits = digits(v);
+                if digits % 2 == 0 {
+                    // new_map.
+                }
+            }
+        }
+        map = new_map;
+    }
+    map.values().sum()
+}
+
+fn split_vec(vec: &[u64]) -> Vec<u64> {
+    let mut new = Vec::new();
+    for v in vec {
+        if *v == 0 {
+            new.push(1);
+        } else {
+            let digits = digits(*v);
+            if digits % 2 == 0 {
+                new.push(v / 10u64.pow(digits / 2));
+                new.push(v % 10u64.pow(digits / 2));
+            } else {
+                new.push(v * 2024);
+            }
+        }
+    }
+    new
+}
 #[aoc(day11, part1)]
 fn solver_part1(input: &Input) -> usize {
     input
@@ -109,14 +154,24 @@ fn solver_part1(input: &Input) -> usize {
         .sum()
 }
 
+#[aoc(day11, part1, BFS)]
+fn solver_part1_bfs(input: &Input) -> usize {
+    bfs(
+        25,
+        input
+            .split_ascii_whitespace()
+            .map(|str| str.parse::<u64>().unwrap())
+            .collect(),
+    )
+}
+
 #[aoc(day11, part1, Parallel)]
 fn solver_part1_parallel(input: &Input) -> usize {
-    let cache = HashMap::new();
     input
         .split_ascii_whitespace()
         .map(|str| str.parse::<u64>().unwrap())
         .par_bridge()
-        .map(|v| recursive_cache(v, 25, &mut cache.clone()))
+        .map(|v| recursive(v, 25))
         .sum()
 }
 
@@ -163,8 +218,47 @@ fn solver_part2(input: &Input) -> usize {
         .sum()
 }
 
+// #[aoc(day11, part2, Parallel)]
+// fn solver_part2_parallel(input: &Input) -> usize {
+//     for i in 1..75 {
+//         let now = Instant::now();
+//         let res: usize = input
+//             .split_ascii_whitespace()
+//             .map(|str| str.parse::<u64>().unwrap())
+//             // .par_bridge()
+//             .map(|v| recursive(v, i))
+//             .sum();
+//         println!("{i},{res},{}", now.elapsed().as_secs_f32());
+//     }
+//     0
+// }
+
 #[aoc(day11, part2, Parallel)]
 fn solver_part2_parallel(input: &Input) -> usize {
+    let mut vec = input
+        .split_ascii_whitespace()
+        .map(|str| str.parse::<u64>().unwrap())
+        .collect_vec();
+    let mut splits = 0;
+    for i in 1..75 {
+        let now = Instant::now();
+        let res: usize = if vec.len() < 60 {
+            vec = split_vec(&vec);
+            splits += 1;
+            vec.len()
+        } else {
+            vec.iter()
+                .par_bridge()
+                .map(|v| recursive(*v, i - splits))
+                .sum()
+        };
+        println!("{i},{res},{}", now.elapsed().as_secs_f32());
+    }
+    0
+}
+
+#[aoc(day11, part2, Parallel_Cache)]
+fn solver_part2_parallel_cache(input: &Input) -> usize {
     let cache = HashMap::new();
     input
         .split_ascii_whitespace()

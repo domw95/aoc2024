@@ -1,3 +1,4 @@
+#![allow(clippy::mut_range_bound)]
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use itertools::Itertools;
@@ -187,6 +188,7 @@ fn rearrange_chunks(fs: &mut Vec<Chunk>) {
                         fs[head] = fs[tail];
                         fs[tail] = swap;
                         fs.insert(head + 1, extra);
+
                         tail += 1
                     }
                     break;

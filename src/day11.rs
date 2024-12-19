@@ -113,7 +113,7 @@ fn bfs(blinks: u32, values: Vec<u64>) -> usize {
     }
     for _ in 0..blinks {
         let mut new_map = FxHashMap::default();
-        for (v, count) in map {
+        for (v, _) in map {
             if v == 0 {
                 new_map.entry(1);
             } else {

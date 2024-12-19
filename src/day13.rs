@@ -1,3 +1,4 @@
+#![allow(non_snake_case)]
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use itertools::Itertools;

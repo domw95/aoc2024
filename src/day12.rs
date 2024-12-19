@@ -3,7 +3,6 @@ use std::collections::HashSet;
 
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
-use aoc_tools::grid;
 use aoc_tools::grid::Coord;
 use aoc_tools::grid::Grid;
 use itertools::Itertools;
@@ -27,7 +26,7 @@ fn find_region(
         .orthogs_coords(&coord)
         .into_iter()
         .flatten()
-        .filter(|(coord, &plant2)| plant == plant2)
+        .filter(|(_, &plant2)| plant == plant2)
         .collect_vec();
     region.insert(coord, 4 - orthogs.len());
     for (coord, _) in orthogs {
@@ -59,7 +58,7 @@ fn solver_part1(input: &Input) -> usize {
 }
 
 #[aoc(day12, part2)]
-fn solver_part2(input: &Input) -> u32 {
+fn solver_part2(_input: &Input) -> u32 {
     0
 }
 

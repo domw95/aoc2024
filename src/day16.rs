@@ -105,12 +105,12 @@ fn solver_part1(input: &Input) -> usize {
         }
     }
     // dbg!(&pos);
-    let res = find_path(&grid, pos, direction, &mut cache, &mut visited).unwrap();
-    res
+
+    find_path(&grid, pos, direction, &mut cache, &mut visited).unwrap()
 }
 
 #[aoc(day16, part2)]
-fn solver_part2(input: &Input) -> u32 {
+fn solver_part2(_input: &Input) -> u32 {
     0
 }
 

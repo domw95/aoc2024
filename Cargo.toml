@@ -26,3 +26,4 @@ fxhash = "0.2.1"
 nalgebra = "0.33.2"
 macroquad = "0.4.13"
 dashmap = { version = "6.1.0", features = ["rayon"] }
+scc = "2.2.6"

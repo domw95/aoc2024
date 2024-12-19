@@ -39,6 +39,28 @@ fn possible_pattern(pattern: &[u8], towels: &[&[u8]]) -> bool {
     })
 }
 
+fn possible_pattern_dash(pattern: &[u8], towels: &[&[u8]], cache: &DashMap<&[u8], bool>) -> bool {
+    // println!("Checking {}", String::from_utf8(pattern.to_vec()).unwrap());
+    if let Some(v) = cache.get(pattern) {
+        return *v;
+    }
+    towels.iter().any(|&towel| {
+        // println!("? {}", String::from_utf8(towel.to_vec()).unwrap());
+        if towel.len() == pattern.len() {
+            pattern == towel
+        } else if towel.len() < pattern.len() {
+            if towel.iter().zip(pattern.iter()).all(|(a, b)| a == b) {
+                // println!("Match {}", String::from_utf8(towel.to_vec()).unwrap());
+                possible_pattern_dash(&pattern[towel.len()..], towels, cache)
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    })
+}
+
 fn possible_pattern_count<'a>(
     pattern: &'a [u8],
     towels: &[&[u8]],
@@ -114,6 +136,38 @@ fn possible_pattern_count_dash<'a>(
 ) -> usize {
     // println!("Checking {}", String::from_utf8(pattern.to_vec()).unwrap());
     if let Some(count) = cache.get(pattern) {
+        *count
+    } else {
+        let count = towels
+            .iter()
+            .map(|&towel| {
+                // println!("? {}", String::from_utf8(towel.to_vec()).unwrap());
+                if pattern == towel {
+                    1
+                } else if towel.len() < pattern.len() {
+                    if towel.iter().zip(pattern.iter()).all(|(a, b)| a == b) {
+                        // println!("Match {}", String::from_utf8(towel.to_vec()).unwrap());
+                        possible_pattern_count_dash(&pattern[towel.len()..], towels, cache)
+                    } else {
+                        0
+                    }
+                } else {
+                    0
+                }
+            })
+            .sum();
+        cache.insert(pattern, count);
+        count
+    }
+}
+
+fn possible_pattern_count_scc<'a>(
+    pattern: &'a [u8],
+    towels: &[&[u8]],
+    cache: &scc::HashMap<&'a [u8], usize>,
+) -> usize {
+    // println!("Checking {}", String::from_utf8(pattern.to_vec()).unwrap());
+    if let Some(count) = cache.get(pattern) {
         return *count;
     }
 
@@ -126,21 +180,20 @@ fn possible_pattern_count_dash<'a>(
             && towel.iter().zip(pattern.iter()).all(|(a, b)| a == b)
         {
             // println!("Match {}", String::from_utf8(towel.to_vec()).unwrap());
-            count += possible_pattern_count_dash(&pattern[towel.len()..], towels, cache);
+            count += possible_pattern_count_scc(&pattern[towel.len()..], towels, cache);
         }
     }
-    cache.insert(pattern, count);
+    let _ = cache.insert(pattern, count);
     count
 }
-
 #[aoc(day19, part1)]
 fn solver_part1(input: &Input) -> usize {
     let mut lines = input.lines();
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
@@ -155,14 +208,32 @@ fn solver_part1_parallel(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
         .par_bridge()
         .map(str::as_bytes)
         .filter(|&pattern| possible_pattern(pattern, &towels))
+        .count()
+}
+
+#[aoc(day19, part1, PARALLEL_DASH)]
+fn solver_part1_parallel_dash(input: &Input) -> usize {
+    let mut lines = input.lines();
+    let cache = DashMap::new();
+    let towels = lines
+        .next()
+        .unwrap()
+        .split(", ")
+        .map(|str| str.as_bytes())
+        .collect_vec();
+    lines.next();
+    lines
+        .par_bridge()
+        .map(str::as_bytes)
+        .filter(|&pattern| possible_pattern_dash(pattern, &towels, &cache))
         .count()
 }
 
@@ -173,8 +244,8 @@ fn solver_part2(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
@@ -190,8 +261,8 @@ fn solver_part2_parallel(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
@@ -208,14 +279,32 @@ fn solver_part2_parallel_dash(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
         .par_bridge()
         .map(str::as_bytes)
         .map(|pattern| possible_pattern_count_dash(pattern, &towels, &cache))
+        .sum()
+}
+
+#[aoc(day19, part2, PARALLEL_SCC)]
+fn solver_part2_parallel_scc(input: &Input) -> usize {
+    let mut lines = input.lines();
+    let cache = scc::HashMap::new();
+    let towels = lines
+        .next()
+        .unwrap()
+        .split(", ")
+        .map(|str| str.as_bytes())
+        .collect_vec();
+    lines.next();
+    lines
+        .par_bridge()
+        .map(str::as_bytes)
+        .map(|pattern| possible_pattern_count_scc(pattern, &towels, &cache))
         .sum()
 }
 
@@ -226,8 +315,8 @@ fn solver_part2_parallel_with(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
@@ -246,8 +335,8 @@ fn solver_part2_parallel_chunks(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     let lines = lines.collect_vec();
@@ -269,8 +358,8 @@ fn solver_part2_parallel_with_fx(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     lines
@@ -289,8 +378,8 @@ fn solver_part2_parallel_manual(input: &Input) -> usize {
     let towels = lines
         .next()
         .unwrap()
-        .split(',')
-        .map(|str| str.trim().as_bytes())
+        .split(", ")
+        .map(|str| str.as_bytes())
         .collect_vec();
     lines.next();
     let lines = Arc::new(Mutex::new(lines));

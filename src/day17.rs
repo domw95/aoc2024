@@ -1,7 +1,5 @@
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
-use rayon::iter::IntoParallelIterator;
-use rayon::iter::ParallelIterator;
 
 type Input = String;
 
@@ -123,6 +121,22 @@ fn faster_parse_input(input: &str) -> (Registers, Vec<u8>) {
         .collect::<Vec<_>>();
     (reg, ins)
 }
+
+fn faster_parse_ins(input: &str) -> Vec<u8> {
+    let mut lines = input.lines();
+
+    lines.next();
+    lines.next();
+    lines.next();
+    lines.next();
+    let ins = lines.next().unwrap()[9..]
+        .bytes()
+        .step_by(2)
+        .map(|v| v - 48)
+        .collect::<Vec<_>>();
+    ins
+}
+
 fn run_program(reg: &mut Registers, ins: &[u8]) -> Vec<u8> {
     let mut index = 0;
     let mut out = Vec::new();
@@ -248,68 +262,135 @@ fn solver_part1_shift_faster_parse(input: &Input) -> String {
     string.pop();
     string
 }
-#[aoc(day17, part2)]
-fn solver_part2(input: &Input) -> u64 {
-    let (mut reg, ins) = parse_input(input);
-    let mut index = ins.len() - 2;
-    let mut out_index = Some(ins.len() - 1);
-    loop {
-        if index >= ins.len() {
-            break;
+
+fn find_next(mut reg: Registers, ins: &[u8], index: usize, ins_index: usize) -> Option<u64> {
+    if index == ins.len() {
+        let a = reg.a;
+        reg.a = a >> (ins_index * 3);
+        let iter = OutputIter::new(reg, ins.to_vec());
+
+        if iter.eq(ins[ins_index..].iter().copied()) {
+            Some(a)
+        } else {
+            None
         }
+    } else {
+        for i in 0..8u64 {
+            let mut reg = reg;
+            let a = reg.a + (i << (index * 3));
+            reg.a = a >> (ins_index * 3);
+            if OutputIter::new(reg, ins.to_vec()).next().unwrap() == ins[ins_index] {
+                reg.a = a;
+                if let Some(res) = find_next(reg, ins, index + 1, ins_index + 1) {
+                    return Some(res);
+                }
+            }
+        }
+        None
+    }
+}
+
+fn step_fast(mut reg: Registers, ins: &[u8]) -> u8 {
+    for index in (0..ins.len()).step_by(2) {
         match ins[index] {
-            0 => reg.a <<= get_combo(&reg, ins[index + 1]),
+            0 => reg.a >>= get_combo(&reg, ins[index + 1]),
             1 => reg.b ^= ins[index + 1] as u64,
-            2 => reg.a = (reg.a & (!0b111)) + (reg.b & 0b111),
+            2 => reg.b = get_combo(&reg, ins[index + 1]) & 0b111,
             3 => (),
             4 => reg.b ^= reg.c,
-            5 => {
-                let expected = ins[out_index.unwrap()];
-                if out_index.unwrap() == 0 {
-                    out_index = None;
-                } else {
-                    out_index.map(|o| o - 1);
-                }
-                assert_eq!(expected, reg.b as u8 & 0b111);
-            }
-            // 6 => reg.b = reg.a >> get_combo(reg, ins[index + 1]),
+            5 => return (get_combo(&reg, ins[index + 1]) & 0b111) as u8,
+            6 => reg.b = reg.a >> get_combo(&reg, ins[index + 1]),
             7 => reg.c = reg.a >> get_combo(&reg, ins[index + 1]),
 
             _ => (),
         }
-        index -= 2
     }
-    reg.a
+    0
 }
 
-#[aoc(day17, part2, ITER)]
-fn solver_part2_iter(input: &Input) -> u64 {
-    let (reg, ins) = parse_input(input);
-    ((1 << ((ins.len() - 1) * 3))..(1 << (ins.len() * 3)))
-        .into_par_iter()
-        .find_first(|i| {
-            if i % 10000000 == 0 {
-                println!("{i}");
+#[aoc(day17, part2)]
+fn solver_part2(input: &Input) -> u64 {
+    let (_, ins) = faster_parse_input(input);
+    for i in 0..512 {
+        let reg = Registers::new(i, 0, 0);
+        if let Some(v) = find_next(reg, &ins, 3, 0) {
+            return v;
+        }
+    }
+    0
+}
+
+#[aoc(day17, part2, BACKWARDS)]
+fn solver_part2_backwrds(input: &Input) -> u64 {
+    let (_, ins) = faster_parse_input(input);
+    let mut values = vec![0u64; ins.len()];
+    let mut index = ins.len() - 1;
+    let mut a = 0u64;
+    loop {
+        let a_t = a + values[index];
+        // println!("{values:?} : {index},{a}:{a_t}");
+        if OutputIter::new(Registers::new(a_t, 0, 0), ins.to_vec())
+            .next()
+            .unwrap()
+            == ins[index]
+        {
+            if index == 0 {
+                return a_t;
+            } else {
+                index -= 1;
+                a = a_t;
+                a <<= 3;
             }
-            let mut reg = reg;
-            reg.a = *i;
-            let iter = OutputIter::new(reg, ins.clone());
-            iter.eq(ins.iter().copied())
-        })
-        .unwrap()
-    // for i in 0..u64::MAX {
-    //     let mut reg = reg;
-    //     reg.a = i;
-    //     let out = run_program(&mut reg, &ins);
-    //     if out == ins {
-    //         return i;
-    //     }
-    // }
+        } else {
+            values[index] += 1;
+            while values[index] == 8 {
+                values[index] = 0;
+                index += 1;
+                a >>= 3;
+                a &= !0b111;
+
+                values[index] += 1;
+                // a += 1;
+            }
+        }
+    }
+}
+
+#[aoc(day17, part2, BACKWARDS_FASTER)]
+fn solver_part2_backwrds_faster(input: &Input) -> u64 {
+    let ins = faster_parse_ins(input);
+    let mut values = vec![0u64; ins.len()];
+    let mut index = ins.len() - 1;
+    let mut a = 0u64;
+    loop {
+        let a_t = a + values[index];
+        // println!("{values:?} : {index},{a}:{a_t}");
+        if step_fast(Registers::new(a_t, 0, 0), &ins) == ins[index] {
+            if index == 0 {
+                return a_t;
+            } else {
+                index -= 1;
+                a = a_t << 3;
+            }
+        } else {
+            values[index] += 1;
+            while values[index] == 8 {
+                values[index] = 0;
+                index += 1;
+                a >>= 3;
+                a &= !0b111;
+
+                values[index] += 1;
+                // a += 1;
+            }
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::day17::solver_part2_iter;
+
+    use crate::day17::solver_part2_backwrds;
 
     use super::input_generator;
     use super::solver_part1;
@@ -338,7 +419,7 @@ Program: 0,3,5,4,3,0";
     }
 
     #[test]
-    fn part2_iter() {
-        assert_eq!(solver_part2_iter(&input_generator(INPUT2)), 117440)
+    fn part2_2() {
+        assert_eq!(solver_part2_backwrds(&input_generator(INPUT2)), 117440)
     }
 }

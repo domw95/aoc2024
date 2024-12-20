@@ -140,8 +140,8 @@ dependencies = [
 
 [[package]]
 name = "aoc-tools"
-version = "0.1.15"
-source = "git+https://github.com/domw95/aoc-tools#64b85d335aafad13b0d2ee0b8c00c622e0fa88d3"
+version = "0.1.16"
+source = "git+https://github.com/domw95/aoc-tools#4dc29857c304a1f862a458019c9d370c3d5ed920"
 
 [[package]]
 name = "aoc2024"
@@ -291,9 +291,9 @@ checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
 
 [[package]]
 name = "bytemuck"
-version = "1.20.0"
+version = "1.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8b37c88a63ffd85d15b406896cc343916d7cf57838a847b3a6f2ca5d39a5695a"
+checksum = "ef657dfab802224e671f5818e9a4935f9b1957ed18e58292690cc39e7a4092a3"
 
 [[package]]
 name = "byteorder"
@@ -1772,9 +1772,9 @@ checksum = "f3cb5ba0dc43242ce17de99c180e96db90b235b8a9fdc9543c96d2209116bd9f"
 
 [[package]]
 name = "safe_arch"
-version = "0.7.2"
+version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c3460605018fdc9612bce72735cba0d27efbcd9904780d44c7e3a9948f96148a"
+checksum = "6153d6e19b611afde437944fa67bde0193eb913f63e03b2a7d2ab36be32e42f0"
 dependencies = [
  "bytemuck",
 ]

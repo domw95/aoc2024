@@ -2,6 +2,7 @@ use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use aoc_tools::grid::Coord;
 use aoc_tools::grid::Grid;
+use itertools::Itertools;
 use rayon::prelude::*;
 
 type Input = String;
@@ -69,6 +70,51 @@ fn find_route_faster(grid: &Grid<u8>, start: Coord) -> (Grid<u32>, Vec<Coord>) {
     (steps, path)
 }
 
+fn find_path_i16(grid: &Grid<u8>, start: Coord) -> Vec<Coord> {
+    let mut next = start;
+    let mut prev = Coord::new(i32::MAX, i32::MAX);
+    let mut path = vec![start];
+    'outer: loop {
+        for node in next.orthogs() {
+            if let Some(cell) = grid.checked_index(&node) {
+                if *cell == b'.' && node != prev {
+                    prev = next;
+                    next = node;
+                    path.push(node);
+                    continue 'outer;
+                }
+            }
+        }
+
+        break;
+    }
+    path
+}
+
+fn find_route_faster_i16(grid: &Grid<u8>, start: Coord) -> (Grid<i16>, Vec<Coord>) {
+    let mut steps = Grid::new(i16::MAX, grid.width, grid.height);
+    steps[start] = 0;
+    let mut next = start;
+    let mut path = vec![start];
+    let mut count = 0;
+    'outer: loop {
+        count += 1;
+        for node in next.orthogs() {
+            if let Some(cell) = grid.checked_index(&node) {
+                if *cell == b'.' && steps[node] == i16::MAX {
+                    steps[node] = count;
+                    next = node;
+                    path.push(node);
+                    continue 'outer;
+                }
+            }
+        }
+
+        break;
+    }
+    (steps, path)
+}
+
 fn find_shortcuts(steps: &Grid<u32>, path: &[Coord]) -> Vec<u32> {
     let mut saved = Vec::new();
     for coord in path {
@@ -91,6 +137,21 @@ fn find_shortcuts_100(steps: &Grid<u32>, path: &[Coord]) -> usize {
         for next in coord.orthog_steps(2).into_iter() {
             if let Some(&dist) = steps.checked_index(&next) {
                 if dist != u32::MAX && dist > start && (dist - start) >= 102 {
+                    count += 1
+                }
+            }
+        }
+    }
+    count
+}
+
+fn find_shortcuts_100_i16(steps: &Grid<i16>, path: &[Coord]) -> usize {
+    let mut count = 0;
+    for coord in path {
+        let start = steps[*coord];
+        for next in coord.orthog_steps(2).into_iter() {
+            if let Some(&dist) = steps.checked_index(&next) {
+                if dist != i16::MAX && (dist - start) >= 102 {
                     count += 1
                 }
             }
@@ -152,11 +213,12 @@ fn find_shortcuts_2_full_slice(_steps: &Grid<u32>, path: &[Coord]) -> usize {
         .sum()
 }
 
-fn find_shortcuts_2_parallel(_steps: &Grid<u32>, path: &[Coord]) -> usize {
+fn find_shortcuts_2_parallel(path: &[Coord]) -> usize {
     path.into_par_iter()
         .enumerate()
         .map(|(i, coord)| {
             let mut count = 0;
+
             for (j, next) in path[i..].iter().enumerate() {
                 let distance = coord.rectilinear_distance(next);
                 if distance <= 20 {
@@ -189,6 +251,45 @@ fn find_shortcuts_2_parallel_2(_steps: &Grid<u32>, path: &[Coord]) -> usize {
         .sum()
 }
 
+fn find_shortcuts_2_parallel_3(path: &[Coord]) -> usize {
+    path[0..(path.len() - 102)]
+        .into_par_iter()
+        .enumerate()
+        .map(|(i, coord)| {
+            let mut gained = 1;
+            path[(i + 102)..]
+                .iter()
+                .filter(|next| {
+                    gained += 1;
+                    let distance = coord.rectilinear_distance(next);
+
+                    distance <= 20 && gained >= distance
+                })
+                .count()
+        })
+        .sum()
+}
+
+fn find_shortcuts_2_parallel_4(path: &[Coord]) -> usize {
+    path[0..(path.len() - 102)]
+        .into_par_iter()
+        .enumerate()
+        .map(|(i, coord)| {
+            let mut gained = 1;
+            let distances = path[(i + 102)..]
+                .iter()
+                .map(|next| coord.rectilinear_distance(next))
+                .collect_vec();
+            distances
+                .into_iter()
+                .filter(|&distance| {
+                    gained += 1;
+                    distance <= 20 && gained >= distance
+                })
+                .count()
+        })
+        .sum()
+}
 fn find_shortcuts_2_worse(_steps: &Grid<u32>, path: &[Coord]) -> usize {
     let mut count = 0;
     for i in 0..(path.len() - 102) {
@@ -262,6 +363,24 @@ fn solver_part1_faster(input: &Input) -> usize {
     find_shortcuts_100(&steps, &path)
 }
 
+#[aoc(day20, part1, I16)]
+fn solver_part1_i16(input: &Input) -> usize {
+    let mut grid = parse_input(input);
+    let mut start = Coord::new(0, 0);
+    for c in grid.coord_iter() {
+        if grid[c] == b'S' {
+            start = c;
+            grid[c] = b'.';
+        }
+        if grid[c] == b'E' {
+            grid[c] = b'.';
+        }
+    }
+    // grid.print_func(|&b| format!("{}", b as char));
+    let (steps, path) = find_route_faster_i16(&grid, start);
+    find_shortcuts_100_i16(&steps, &path)
+}
+
 #[aoc(day20, part1, ALT)]
 fn solver_part1_alt(input: &Input) -> usize {
     let mut grid = parse_input(input);
@@ -321,8 +440,44 @@ fn solver_part2_parallel(input: &Input) -> usize {
         }
     }
     // grid.print_func(|&b| format!("{}", b as char));
-    let (steps, path) = find_route_faster(&grid, start);
-    find_shortcuts_2_parallel(&steps, &path)
+    let (_, path) = find_route_faster(&grid, start);
+    find_shortcuts_2_parallel(&path)
+}
+
+#[aoc(day20, part2, PARALLEL_3)]
+fn solver_part2_parallel_3(input: &Input) -> usize {
+    let mut grid = parse_input(input);
+    let mut start = Coord::new(0, 0);
+    for c in grid.coord_iter() {
+        if grid[c] == b'S' {
+            start = c;
+            grid[c] = b'.';
+        }
+        if grid[c] == b'E' {
+            grid[c] = b'.';
+        }
+    }
+    // grid.print_func(|&b| format!("{}", b as char));
+    let path = find_path_i16(&grid, start);
+    find_shortcuts_2_parallel_3(&path)
+}
+
+#[aoc(day20, part2, PARALLEL_4)]
+pub fn solver_part2_parallel_4(input: &Input) -> usize {
+    let mut grid = parse_input(input);
+    let mut start = Coord::new(0, 0);
+    for c in grid.coord_iter() {
+        if grid[c] == b'S' {
+            start = c;
+            grid[c] = b'.';
+        }
+        if grid[c] == b'E' {
+            grid[c] = b'.';
+        }
+    }
+    // grid.print_func(|&b| format!("{}", b as char));
+    let path = find_path_i16(&grid, start);
+    find_shortcuts_2_parallel_4(&path)
 }
 
 #[aoc(day20, part2, PARALLEL_2)]

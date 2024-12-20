@@ -8,10 +8,14 @@ bench = false
 
 [profile.release]
 codegen-units = 1
-lto = "thin"
+lto = "fat"
 
 [build]
 rustflags = ["-C", "target-cpu=native"]
+
+[[bin]]
+name = "r"
+path = "bin/r.rs"
 
 [dependencies]
 aoc-runner = "0.3.0"
@@ -27,3 +31,4 @@ nalgebra = "0.33.2"
 macroquad = "0.4.13"
 dashmap = { version = "6.1.0", features = ["rayon"] }
 scc = "2.2.6"
+flamegraph = "0.6.7"

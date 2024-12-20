@@ -7,7 +7,7 @@ use rayon::prelude::*;
 type Input = String;
 
 #[aoc_generator(day20)]
-fn input_generator(input: &str) -> Input {
+pub fn input_generator(input: &str) -> Input {
     input.to_string()
 }
 
@@ -281,7 +281,7 @@ fn solver_part1_alt(input: &Input) -> usize {
 }
 
 #[aoc(day20, part2)]
-fn solver_part2(input: &Input) -> usize {
+pub fn solver_part2(input: &Input) -> usize {
     let mut grid = parse_input(input);
     let mut start = Coord::new(0, 0);
     for c in grid.coord_iter() {
@@ -379,7 +379,7 @@ fn solver_part2_worse(input: &Input) -> usize {
 }
 
 #[aoc(day20, part2, SLICE)]
-fn solver_part2_slice(input: &Input) -> usize {
+pub fn solver_part2_slice(input: &Input) -> usize {
     let mut grid = parse_input(input);
     let mut start = Coord::new(0, 0);
     for c in grid.coord_iter() {

@@ -19,15 +19,20 @@ fn round(mut secret: i64) -> i64 {
     secret & 0xFFFFFF
 }
 
-fn chunk_round<const C: usize>(secret: &[i64; C]) -> [i64; C] {
-    secret.map(|mut secret| {
-        secret ^= secret << 6;
-        secret &= 0xFFFFFF;
-        secret ^= secret >> 5;
-        secret &= 0xFFFFFF;
-        secret ^= secret << 11;
-        secret & 0xFFFFFF
-    })
+pub fn chunk_round<const C: usize>(secret: &[i32; C]) -> [i32; C] {
+    // secret.map(|mut secret| {
+    //     secret ^= secret << 6;
+    //     secret &= 0xFFFFFF;
+    //     secret ^= secret >> 5;
+    //     secret &= 0xFFFFFF;
+    //     secret ^= secret << 11;
+    //     secret & 0xFFFFFF
+    // })
+    secret.map(|s| s + 30)
+}
+
+pub fn chunk_round_8(secret: &[i32; 32]) -> [i32; 32] {
+    chunk_round(secret)
 }
 
 fn round2000(mut secret: i64) -> i64 {
@@ -37,7 +42,7 @@ fn round2000(mut secret: i64) -> i64 {
     secret
 }
 
-fn chunk_round2000<const C: usize>(mut secret: [i64; C]) -> [i64; C] {
+fn chunk_round2000<const C: usize>(mut secret: [i32; C]) -> [i32; C] {
     for _ in 0..2000 {
         secret = chunk_round(&secret);
     }
@@ -84,25 +89,62 @@ fn solver_part1_bulk(input: &Input) -> i64 {
 fn solver_part1_chunk(input: &Input) -> i64 {
     let secrets = input
         .lines()
-        .map(|line| line.parse::<u32>().unwrap() as i64)
+        .map(|line| line.parse::<u32>().unwrap() as i32)
         .collect_vec();
 
-    const C: usize = 8;
+    const C: usize = 16;
     let mut iter = secrets[0..].chunks_exact(C);
 
     let mut sum = 0;
     for c in &mut iter {
         sum += chunk_round2000(<[_; C]>::try_from(c).unwrap())
             .into_iter()
+            .map(|v| v as i64)
             .sum::<i64>();
     }
 
     sum + iter
         .remainder()
         .iter()
-        .map(|secret: &i64| round2000(*secret))
+        .map(|secret| round2000(*secret as i64))
         .sum::<i64>()
 }
+
+#[aoc(day22, part1, CHUNK_PARALLEL)]
+fn solver_part1_chunk_parallel(input: &Input) -> i64 {
+    let secrets = input
+        .lines()
+        .map(|line| line.parse::<u32>().unwrap() as i32)
+        .collect_vec();
+
+    const C: usize = 32;
+    let iter = secrets[0..].par_chunks_exact(C);
+
+    let sum = iter
+        .remainder()
+        .iter()
+        .map(|secret| round2000(*secret as i64))
+        .sum::<i64>();
+
+    iter.map(|c| {
+        chunk_round2000(<[_; C]>::try_from(c).unwrap())
+            .into_iter()
+            .map(|v| v as i64)
+            .sum::<i64>()
+    })
+    .sum::<i64>()
+        + sum
+}
+
+// #[aoc(day22, part1, TEST)]
+// #[inline(never)]
+// fn solver_part1_test(input: &Input) -> u32 {
+//     let vec = (0..(input.len() as u32)).collect_vec();
+//     vec[0..1024]
+//         .chunks_exact(8)
+//         .map(|c| c.iter().map(|v| v.pow(2)).sum::<u32>())
+//         .sum()
+// }
 
 struct SeqIter {
     ind: usize,

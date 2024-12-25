@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-
 use aoc_runner_derive::aoc;
 use aoc_runner_derive::aoc_generator;
 use aoc_tools::grid::Coord;
 use aoc_tools::grid::Grid;
+use fxhash::FxHashMap;
+use fxhash::FxHashSet;
 
 type Input = String;
 
@@ -21,7 +21,22 @@ enum Orientation {
 }
 
 impl Orientation {
-    fn cost(&self, other: &Self) -> usize {
+    fn as_index(&self) -> usize {
+        *self as usize
+    }
+
+    fn adjacent(&self) -> [Self; 2] {
+        match self {
+            Orientation::North => [Orientation::East, Orientation::West],
+            Orientation::East => [Orientation::North, Orientation::South],
+            Orientation::South => [Orientation::East, Orientation::West],
+            Orientation::West => [Orientation::North, Orientation::South],
+        }
+    }
+}
+
+impl Orientation {
+    fn _cost(&self, other: &Self) -> usize {
         match (self, other) {
             (Orientation::North, Orientation::North) => 0,
             (Orientation::North, Orientation::East) => 1000,
@@ -43,70 +58,135 @@ impl Orientation {
     }
 }
 
-fn find_path(
-    grid: &Grid<u8>,
-    pos: Coord,
-    orientation: Orientation,
-    cache: &mut HashMap<(Coord, Orientation), Option<usize>>,
-    visited: &mut Grid<bool>,
-) -> Option<usize> {
-    // dbg!(&pos);
-    if let Some(&cell) = grid.checked_index(&pos) {
-        if cell == b'#' {
-            None
-        } else if cell == b'E' {
-            Some(0)
-        } else if visited[pos] {
-            None
-        } else {
-            //
-
-            if let Some(Some(cached)) = cache.get(&(pos, orientation)) {
-                Some(*cached)
-            } else {
-                visited[pos] = true;
-                let scores = [
-                    find_path(grid, pos.north(), Orientation::North, cache, visited)
-                        .map(|score| score + orientation.cost(&Orientation::North) + 1),
-                    find_path(grid, pos.east(), Orientation::East, cache, visited)
-                        .map(|score| score + orientation.cost(&Orientation::East) + 1),
-                    find_path(grid, pos.south(), Orientation::South, cache, visited)
-                        .map(|score| score + orientation.cost(&Orientation::South) + 1),
-                    find_path(grid, pos.west(), Orientation::West, cache, visited)
-                        .map(|score| score + orientation.cost(&Orientation::West) + 1),
-                ];
-                let best = scores.into_iter().flatten().min();
-
-                cache.insert((pos, orientation), best);
-
-                visited[pos] = false;
-                best
-            }
-        }
-    } else {
-        None
+fn forwards(pos: &Coord, direction: &Orientation) -> Coord {
+    match direction {
+        Orientation::North => pos.north(),
+        Orientation::East => pos.east(),
+        Orientation::South => pos.south(),
+        Orientation::West => pos.west(),
     }
 }
 
 #[aoc(day16, part1)]
-fn solver_part1(input: &Input) -> usize {
+fn solver_part1(input: &Input) -> u32 {
     let width = input.lines().next().unwrap().len();
     let grid = Grid::from_iter(&mut input.lines().flat_map(|l| l.bytes()), width);
-    // dbg!(&grid);
-    // let mut cache = Grid::from_iter(&mut (0..(grid.height * grid.width)).map(|_| None), width);
-    let mut cache = HashMap::new();
-    let mut visited = Grid::from_iter(&mut (0..(grid.height * grid.width)).map(|_| false), width);
+    let mut distances: [_; 4] =
+        core::array::from_fn(|_| Grid::new(u32::MAX, grid.width, grid.height));
+
     let mut pos = Coord::new(0, 0);
-    let direction = Orientation::East;
-    for (c, i) in grid.iter() {
-        if *i == b'S' {
+    for (c, b) in grid.iter() {
+        if *b == b'S' {
             pos = c;
             break;
         }
     }
-    // dbg!(&pos);
+    let mut direction = Orientation::East;
+    let mut distance = 0;
+    let mut unvisted = FxHashSet::default();
 
-    find_path(&grid, pos, direction, &mut cache, &mut visited).unwrap()
+    distances[direction.as_index()][pos] = 0;
+    loop {
+        let adj = direction.adjacent();
+        for a in adj {
+            if distances[a.as_index()][pos] > distance + 1000 {
+                distances[a.as_index()][pos] = distance + 1000;
+                unvisted.insert((pos, a));
+            }
+        }
+        let forward = forwards(&pos, &direction);
+        if let Some(&b) = grid.checked_index(&forward) {
+            // dbg!(&forward, b);
+            if b == b'.' || b == b'E' {
+                let d = distances[direction.as_index()][forward];
+                if d > distance + 1 {
+                    distances[direction.as_index()][forward] = distance + 1;
+                    unvisted.insert((forward, direction));
+                }
+            }
+        }
+
+        // dbg!(&unvisted);
+        // find minimum
+        if let Some(min) = unvisted
+            .iter()
+            .map(|(pos, d)| ((pos, d), distances[d.as_index()][*pos]))
+            .min_by_key(|c| c.1)
+        {
+            pos = *min.0 .0;
+            direction = *min.0 .1;
+            distance = min.1;
+            unvisted.remove(&(pos, direction));
+        } else {
+            break;
+        }
+    }
+    for (c, b) in grid.iter() {
+        if *b == b'E' {
+            pos = c;
+            break;
+        }
+    }
+    distances.iter().map(|g| g[pos]).min().unwrap()
+}
+
+#[aoc(day16, part1, MAP)]
+fn solver_part1_map(input: &Input) -> u32 {
+    let width = input.lines().next().unwrap().len();
+    let grid = Grid::from_iter(&mut input.lines().flat_map(|l| l.bytes()), width);
+    let mut distances: [_; 4] =
+        core::array::from_fn(|_| Grid::new(u32::MAX, grid.width, grid.height));
+
+    let mut pos = Coord::new(0, 0);
+    for (c, b) in grid.iter() {
+        if *b == b'S' {
+            pos = c;
+            break;
+        }
+    }
+    let mut direction = Orientation::East;
+    let mut distance = 0;
+    let mut unvisted = FxHashMap::default();
+
+    distances[direction.as_index()][pos] = 0;
+    loop {
+        let adj = direction.adjacent();
+        for a in adj {
+            if distances[a.as_index()][pos] > distance + 1000 {
+                distances[a.as_index()][pos] = distance + 1000;
+                unvisted.insert((pos, a), distance + 1000);
+            }
+        }
+        let forward = forwards(&pos, &direction);
+        if let Some(&b) = grid.checked_index(&forward) {
+            // dbg!(&forward, b);
+            if b == b'.' || b == b'E' {
+                let d = distances[direction.as_index()][forward];
+                if d > distance + 1 {
+                    distances[direction.as_index()][forward] = distance + 1;
+                    unvisted.insert((forward, direction), distance + 1);
+                }
+            }
+        }
+
+        // dbg!(&unvisted);
+        // find minimum
+        if let Some(min) = unvisted.iter().min_by_key(|c| c.1) {
+            pos = min.0 .0;
+            direction = min.0 .1;
+            distance = *min.1;
+            unvisted.remove(&(pos, direction));
+        } else {
+            break;
+        }
+    }
+    for (c, b) in grid.iter() {
+        if *b == b'E' {
+            pos = c;
+            break;
+        }
+    }
+    distances.iter().map(|g| g[pos]).min().unwrap()
 }
 
 #[aoc(day16, part2)]
@@ -116,6 +196,8 @@ fn solver_part2(_input: &Input) -> u32 {
 
 #[cfg(test)]
 mod tests {
+    use crate::day16::solver_part1_map;
+
     use super::input_generator;
     use super::solver_part1;
     use super::solver_part2;
@@ -207,6 +289,11 @@ S..";
     #[test]
     fn part1() {
         assert_eq!(solver_part1(&input_generator(INPUT)), 7036)
+    }
+
+    #[test]
+    fn part1_map() {
+        assert_eq!(solver_part1_map(&input_generator(INPUT)), 7036)
     }
 
     #[test]

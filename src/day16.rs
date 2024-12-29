@@ -20,9 +20,28 @@ enum Orientation {
     West,
 }
 
+impl From<usize> for Orientation {
+    fn from(value: usize) -> Self {
+        match value {
+            0 => Orientation::North,
+            1 => Orientation::East,
+            2 => Orientation::South,
+            _ => Orientation::West,
+        }
+    }
+}
 impl Orientation {
     fn as_index(&self) -> usize {
         *self as usize
+    }
+
+    fn opposite(&self) -> Self {
+        match self {
+            Orientation::North => Orientation::South,
+            Orientation::East => Orientation::West,
+            Orientation::South => Orientation::North,
+            Orientation::West => Orientation::East,
+        }
     }
 
     fn adjacent(&self) -> [Self; 2] {
@@ -67,10 +86,7 @@ fn forwards(pos: &Coord, direction: &Orientation) -> Coord {
     }
 }
 
-#[aoc(day16, part1)]
-fn solver_part1(input: &Input) -> u32 {
-    let width = input.lines().next().unwrap().len();
-    let grid = Grid::from_iter(&mut input.lines().flat_map(|l| l.bytes()), width);
+fn mark_distances(grid: &Grid<u8>) -> [aoc_tools::grid::Grid<u32>; 4] {
     let mut distances: [_; 4] =
         core::array::from_fn(|_| Grid::new(u32::MAX, grid.width, grid.height));
 
@@ -121,13 +137,20 @@ fn solver_part1(input: &Input) -> u32 {
             break;
         }
     }
+    distances
+}
+
+#[aoc(day16, part1)]
+fn solver_part1(input: &Input) -> u32 {
+    let width = input.lines().next().unwrap().len();
+    let grid = Grid::from_iter(&mut input.lines().flat_map(|l| l.bytes()), width);
+    let distances = mark_distances(&grid);
     for (c, b) in grid.iter() {
         if *b == b'E' {
-            pos = c;
-            break;
+            return distances.iter().map(|g| g[c]).min().unwrap();
         }
     }
-    distances.iter().map(|g| g[pos]).min().unwrap()
+    panic!()
 }
 
 #[aoc(day16, part1, MAP)]
@@ -190,8 +213,58 @@ fn solver_part1_map(input: &Input) -> u32 {
 }
 
 #[aoc(day16, part2)]
-fn solver_part2(_input: &Input) -> u32 {
-    0
+fn solver_part2(input: &Input) -> usize {
+    let width = input.lines().next().unwrap().len();
+    let grid = Grid::from_iter(&mut input.lines().flat_map(|l| l.bytes()), width);
+    let distances = mark_distances(&grid);
+
+    let mut path = FxHashSet::default();
+
+    let mut positions = Vec::new();
+    for (c, i) in grid.iter() {
+        if *i == b'E' {
+            let min = distances.iter().map(|g| g[c]).min().unwrap();
+            for (i, g) in distances.iter().enumerate() {
+                if g[c] == min {
+                    positions.push((c, Orientation::from(i)));
+                }
+            }
+        }
+    }
+    for p in &positions {
+        path.insert(p.0);
+    }
+    loop {
+        positions = positions
+            .into_iter()
+            .flat_map(|(pos, direction)| {
+                let mut vec = Vec::new();
+                let distance = distances[direction.as_index()][pos];
+                let adj = direction.adjacent();
+                for adj in adj {
+                    if distances[adj.as_index()][pos] == distance - 1000
+                        && distances[adj.as_index()][pos] != 0
+                    {
+                        vec.push((pos, adj));
+                    }
+                }
+                let opposite = direction.opposite();
+                let next = forwards(&pos, &opposite);
+                if distances[direction.as_index()][next] == distance - 1
+                    && distances[direction.as_index()][next] != 0
+                {
+                    vec.push((next, direction));
+                }
+                path.insert(pos);
+                vec
+            })
+            .collect();
+
+        if positions.is_empty() {
+            break;
+        }
+    }
+    path.len() + 1
 }
 
 #[cfg(test)]
@@ -323,6 +396,6 @@ S..";
 
     #[test]
     fn part2() {
-        assert_eq!(solver_part2(&input_generator(INPUT)), 0)
+        assert_eq!(solver_part2(&input_generator(INPUT)), 45)
     }
 }

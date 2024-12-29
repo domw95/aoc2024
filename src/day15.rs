@@ -162,6 +162,77 @@ fn solver_part1(input: &Input) -> usize {
         .sum()
 }
 
+fn can_move_up(grid: &Grid<u8>, pos: Coord) -> Option<Vec<Coord>> {
+    match grid[pos] {
+        b'[' => {
+            //
+            let left = match grid[pos.north()] {
+                b'.' => Some(vec![]),
+                b'[' => can_move_up(grid, pos.north()),
+                b']' => can_move_up(grid, pos.north_west()),
+                _ => None,
+            }?;
+            let right = match grid[pos.north_east()] {
+                b'.' | b']' => Some(vec![]),
+                b'[' => can_move_up(grid, pos.north_east()),
+                _ => None,
+            }?;
+            Some(
+                [vec![pos, pos.east()], left, right]
+                    .into_iter()
+                    .flatten()
+                    .collect(),
+            )
+        }
+
+        _ => panic!(),
+    }
+}
+
+fn can_move_down(grid: &Grid<u8>, pos: Coord) -> Option<Vec<Coord>> {
+    match grid[pos] {
+        b'[' => {
+            //
+            let left = match grid[pos.south()] {
+                b'.' => Some(vec![]),
+                b'[' => can_move_down(grid, pos.south()),
+                b']' => can_move_down(grid, pos.south_west()),
+                _ => None,
+            }?;
+            let right = match grid[pos.south_east()] {
+                b'.' | b']' => Some(vec![]),
+                b'[' => can_move_down(grid, pos.south_east()),
+                _ => None,
+            }?;
+            Some(
+                [vec![pos, pos.east()], left, right]
+                    .into_iter()
+                    .flatten()
+                    .collect(),
+            )
+        }
+
+        _ => panic!(),
+    }
+}
+
+fn move_up(grid: &mut Grid<u8>, mut vec: Vec<Coord>) {
+    vec.sort_by_key(|c| c.y);
+    for c in vec.into_iter().unique() {
+        grid[c.north()] = grid[c];
+        grid[c] = b'.';
+    }
+}
+
+fn move_down(grid: &mut Grid<u8>, mut vec: Vec<Coord>) {
+    vec.sort_by_key(|c| c.y);
+    vec.reverse();
+    for c in vec.into_iter().unique() {
+        grid[c.south()] = grid[c];
+        grid[c] = b'.';
+    }
+}
+
 #[aoc(day15, part2)]
 fn solver_part2(input: &Input) -> usize {
     let (mut grid, lines) = parse_input_2(input);
@@ -174,9 +245,11 @@ fn solver_part2(input: &Input) -> usize {
         }
     }
     grid[bot] = b'.';
-
+    // grid.print_func(|&b| format!("{}", b as char));
+    // println!();
     // iter instructions
     for ins in lines.flat_map(|l| l.bytes()) {
+        // grid.print_func(|&b| format!("{}", b as char));
         match ins {
             b'>' => {
                 let dest = bot.east();
@@ -187,8 +260,18 @@ fn solver_part2(input: &Input) -> usize {
                         loop {
                             match grid[next] {
                                 b'.' => {
-                                    grid[next] = b'O';
                                     grid[dest] = b'.';
+                                    grid[next] = b']';
+                                    next = next.west();
+                                    while next != dest {
+                                        if grid[next] == b']' {
+                                            grid[next] = b'[';
+                                        } else {
+                                            grid[next] = b']';
+                                        }
+                                        next = next.west();
+                                    }
+
                                     bot = dest;
                                     break;
                                 }
@@ -209,8 +292,17 @@ fn solver_part2(input: &Input) -> usize {
                         loop {
                             match grid[next] {
                                 b'.' => {
-                                    grid[next] = b'O';
                                     grid[dest] = b'.';
+                                    grid[next] = b'[';
+                                    next = next.east();
+                                    while next != dest {
+                                        if grid[next] == b']' {
+                                            grid[next] = b'[';
+                                        } else {
+                                            grid[next] = b']';
+                                        }
+                                        next = next.east();
+                                    }
                                     bot = dest;
                                     break;
                                 }
@@ -222,46 +314,44 @@ fn solver_part2(input: &Input) -> usize {
                     _ => (),
                 }
             }
-            b'v' => {
-                let dest = bot.south();
+            b'^' => {
+                let dest = bot.north();
                 match grid[dest] {
                     b'.' => bot = dest,
-                    b'O' => {
-                        let mut next = dest.south();
-                        loop {
-                            match grid[next] {
-                                b'.' => {
-                                    grid[next] = b'O';
-                                    grid[dest] = b'.';
-                                    bot = dest;
-                                    break;
-                                }
-                                b'O' => next = next.south(),
-                                _ => break,
-                            }
+                    b'[' => {
+                        if let Some(vec) = can_move_up(&grid, dest) {
+                            // dbg!(&vec);
+                            move_up(&mut grid, vec);
+
+                            bot = dest;
+                        }
+                    }
+                    b']' => {
+                        if let Some(vec) = can_move_up(&grid, dest.west()) {
+                            // dbg!(&vec);
+                            move_up(&mut grid, vec);
+                            bot = dest;
                         }
                     }
                     _ => (),
                 }
             }
-
-            b'^' => {
-                let dest = bot.north();
+            b'v' => {
+                let dest = bot.south();
                 match grid[dest] {
                     b'.' => bot = dest,
-                    b'O' => {
-                        let mut next = dest.north();
-                        loop {
-                            match grid[next] {
-                                b'.' => {
-                                    grid[next] = b'O';
-                                    grid[dest] = b'.';
-                                    bot = dest;
-                                    break;
-                                }
-                                b'O' => next = next.north(),
-                                _ => break,
-                            }
+                    b'[' => {
+                        if let Some(vec) = can_move_down(&grid, dest) {
+                            // dbg!(&vec);
+                            move_down(&mut grid, vec);
+                            bot = dest;
+                        }
+                    }
+                    b']' => {
+                        if let Some(vec) = can_move_down(&grid, dest.west()) {
+                            // dbg!(&vec);
+                            move_down(&mut grid, vec);
+                            bot = dest;
                         }
                     }
                     _ => (),
@@ -270,7 +360,17 @@ fn solver_part2(input: &Input) -> usize {
             _ => (),
         }
     }
-    0
+    // grid.print_func(|&b| format!("{}", b as char));
+    // Sum box positions
+    grid.iter()
+        .filter_map(|(c, i)| {
+            if *i == b'[' {
+                Some(c.x as usize + 100 * c.y as usize)
+            } else {
+                None
+            }
+        })
+        .sum()
 }
 
 #[cfg(test)]
@@ -312,6 +412,61 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
 
 <^^>>>vv<v>>v<<";
 
+    static INPUT3: &str = "#######
+#...#.#
+#.....#
+#..OO@#
+#..O..#
+#.....#
+#######
+
+<vv<<^^<<^^";
+
+    static INPUT4: &str = "#######
+#.....#
+#.O.O@#
+#..O..#
+#..O..#
+#.....#
+#######
+
+<v<<>vv<^^";
+
+    static INPUT5: &str = "#######
+#.....#
+#.OO@.#
+#.....#
+#######
+
+<<";
+    static INPUT6: &str = "#######
+#.....#
+#.O#..#
+#..O@.#
+#.....#
+#######
+
+<v<<^";
+
+    static INPUT7: &str = "#######
+#.....#
+#.#O..#
+#..O@.#
+#.....#
+#######
+
+<v<^";
+
+    static INPUT8: &str = "######
+#....#
+#.O..#
+#.OO@#
+#.O..#
+#....#
+######
+
+<vv<<^";
+
     #[test]
     fn part1() {
         assert_eq!(solver_part1(&input_generator(INPUT)), 10092)
@@ -323,7 +478,37 @@ v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^";
     }
 
     #[test]
-    fn part2() {
-        assert_eq!(solver_part2(&input_generator(INPUT)), 0)
+    fn part2_1() {
+        assert_eq!(solver_part2(&input_generator(INPUT)), 9021)
+    }
+
+    #[test]
+    fn part2_2() {
+        assert_eq!(solver_part2(&input_generator(INPUT3)), 618)
+    }
+
+    #[test]
+    fn part2_4() {
+        assert_eq!(solver_part2(&input_generator(INPUT4)), 822)
+    }
+
+    #[test]
+    fn part2_5() {
+        assert_eq!(solver_part2(&input_generator(INPUT5)), 406)
+    }
+
+    #[test]
+    fn part2_6() {
+        assert_eq!(solver_part2(&input_generator(INPUT6)), 509)
+    }
+
+    #[test]
+    fn part2_7() {
+        assert_eq!(solver_part2(&input_generator(INPUT7)), 511)
+    }
+
+    #[test]
+    fn part2_8() {
+        assert_eq!(solver_part2(&input_generator(INPUT8)), 816)
     }
 }

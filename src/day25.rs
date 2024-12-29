@@ -53,7 +53,7 @@ fn solver_part1(input: &Input) -> usize {
 }
 
 #[aoc(day25, part2)]
-fn solver_part2(input: &Input) -> u32 {
+fn solver_part2(_input: &Input) -> u32 {
     0
 }
 
